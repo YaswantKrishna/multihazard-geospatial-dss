@@ -1,0 +1,8 @@
+@echo off
+echo ====================================================
+echo  MULTIHAZARD DSS - Starting Backend (FastAPI)
+echo ====================================================
+cd /d "%~dp0"
+cd backend
+call venv\Scripts\activate
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
