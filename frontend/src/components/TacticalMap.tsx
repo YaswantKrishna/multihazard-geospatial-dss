@@ -57,10 +57,12 @@ interface TacticalMapProps {
   routeResponse: RouteResponse | null;
   activeRouteMode: 'shortest' | 'least_risk';
   focusedHotspotId: string | null;
+  customOrigin?: { lat: number; lng: number; name: string };
+  customDest?: { lat: number; lng: number; name: string };
 }
 
 export const TacticalMap: React.FC<TacticalMapProps> = ({
-  currentAoi, analysis, routeResponse, activeRouteMode,
+  currentAoi, analysis, routeResponse, activeRouteMode, customOrigin, customDest
 }) => {
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [rasterOpacity, setRasterOpacity] = useState(80);
@@ -74,8 +76,12 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
   const [coord, setCoord] = useState({ lat: currentAoi.center[0], lng: currentAoi.center[1] });
   const mapRef = useRef<L.Map | null>(null);
 
-  const origin: [number, number] = [currentAoi.default_origin.lat, currentAoi.default_origin.lng];
-  const dest: [number, number] = [currentAoi.default_destination.lat, currentAoi.default_destination.lng];
+  const origin: [number, number] = customOrigin
+    ? [customOrigin.lat, customOrigin.lng]
+    : [currentAoi.default_origin.lat, currentAoi.default_origin.lng];
+  const dest: [number, number] = customDest
+    ? [customDest.lat, customDest.lng]
+    : [currentAoi.default_destination.lat, currentAoi.default_destination.lng];
 
   const shortestCoords: [number, number][] = routeResponse?.shortest_route?.coordinates?.length
     ? (routeResponse.shortest_route.coordinates as [number, number][])
@@ -179,13 +185,13 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
         </Polyline>
 
         {/* Origin pin */}
-        <Marker position={origin} icon={createPinIcon(`ORIGIN: ${currentAoi.default_origin.name.split(' ')[0]}`, '#38bdf8')}>
-          <Popup><b style={{ color: '#38bdf8' }}>ORIGIN</b><br />{currentAoi.default_origin.name}</Popup>
+        <Marker position={origin} icon={createPinIcon(`ORIGIN: ${(customOrigin?.name || currentAoi.default_origin.name).split(' ')[0]}`, '#38bdf8')}>
+          <Popup><b style={{ color: '#38bdf8' }}>ORIGIN</b><br />{customOrigin?.name || currentAoi.default_origin.name}</Popup>
         </Marker>
 
         {/* Destination pin */}
-        <Marker position={dest} icon={createPinIcon(`DEST: ${currentAoi.default_destination.name.split(' ')[0]}`, '#ef4444')}>
-          <Popup><b style={{ color: '#ffb4ab' }}>DESTINATION</b><br />{currentAoi.default_destination.name}</Popup>
+        <Marker position={dest} icon={createPinIcon(`DEST: ${(customDest?.name || currentAoi.default_destination.name).split(' ')[0]}`, '#ef4444')}>
+          <Popup><b style={{ color: '#ffb4ab' }}>DESTINATION</b><br />{customDest?.name || currentAoi.default_destination.name}</Popup>
         </Marker>
 
         {/* Hospital markers */}

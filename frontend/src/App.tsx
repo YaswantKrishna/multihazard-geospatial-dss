@@ -30,6 +30,8 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isRoutingLoading, setIsRoutingLoading] = useState<boolean>(false);
   const [pipelineStage, setPipelineStage] = useState<string>('Data Ready');
+  const [customOrigin, setCustomOrigin] = useState<{ lat: number; lng: number; name: string } | null>(null);
+  const [customDest, setCustomDest] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [showInfoModal, setShowInfoModal] = useState<boolean>(false);
 
   // Initialize application on load
@@ -63,6 +65,16 @@ export const App: React.FC = () => {
   // Handle switching AOIs
   const handleSelectAoi = async (aoi: AOI) => {
     setCurrentAoi(aoi);
+    setCustomOrigin({
+      lat: aoi.default_origin.lat,
+      lng: aoi.default_origin.lng,
+      name: aoi.default_origin.name
+    });
+    setCustomDest({
+      lat: aoi.default_destination.lat,
+      lng: aoi.default_destination.lng,
+      name: aoi.default_destination.name
+    });
     setIsLoading(true);
     setPipelineStage(`Loading ${aoi.name} satellite rasters...`);
     const newAnalysis = await runAnalysis(aoi.id, weights);
@@ -105,14 +117,23 @@ export const App: React.FC = () => {
     }, 500);
   };
 
-  // Calculate route trigger
-  const handleCalculateRoute = async () => {
+  // Calculate route trigger with custom origin/destination support
+  const handleCalculateRoute = async (
+    origin?: { lat: number; lng: number; name: string },
+    dest?: { lat: number; lng: number; name: string }
+  ) => {
     if (!currentAoi || !analysis) return;
+    const orig = origin || customOrigin || { lat: currentAoi.default_origin.lat, lng: currentAoi.default_origin.lng, name: currentAoi.default_origin.name };
+    const dst = dest || customDest || { lat: currentAoi.default_destination.lat, lng: currentAoi.default_destination.lng, name: currentAoi.default_destination.name };
+    
+    if (origin) setCustomOrigin(origin);
+    if (dest) setCustomDest(dest);
+
     setIsRoutingLoading(true);
     const res = await calculateRoute(
       analysis.analysis_id,
-      { lat: currentAoi.default_origin.lat, lng: currentAoi.default_origin.lng },
-      { lat: currentAoi.default_destination.lat, lng: currentAoi.default_destination.lng },
+      { lat: orig.lat, lng: orig.lng },
+      { lat: dst.lat, lng: dst.lng },
       5.0
     );
     setRouteResponse(res);
@@ -178,6 +199,8 @@ export const App: React.FC = () => {
               routeResponse={routeResponse}
               activeRouteMode={activeRouteMode}
               focusedHotspotId={focusedHotspotId}
+              customOrigin={customOrigin || { lat: currentAoi.default_origin.lat, lng: currentAoi.default_origin.lng, name: currentAoi.default_origin.name }}
+              customDest={customDest || { lat: currentAoi.default_destination.lat, lng: currentAoi.default_destination.lng, name: currentAoi.default_destination.name }}
             />
 
             {/* Right Decision Intelligence Panel */}
@@ -191,6 +214,11 @@ export const App: React.FC = () => {
               selectedFacility={selectedFacility}
               onSelectFacility={(fac) => setSelectedFacility(fac)}
               onFocusHotspot={(id) => setFocusedHotspotId(id)}
+              currentAoi={currentAoi}
+              customOrigin={customOrigin || { lat: currentAoi.default_origin.lat, lng: currentAoi.default_origin.lng, name: currentAoi.default_origin.name }}
+              customDest={customDest || { lat: currentAoi.default_destination.lat, lng: currentAoi.default_destination.lng, name: currentAoi.default_destination.name }}
+              onUpdateOrigin={(orig) => setCustomOrigin(orig)}
+              onUpdateDest={(dst) => setCustomDest(dst)}
             />
           </div>
         )}
