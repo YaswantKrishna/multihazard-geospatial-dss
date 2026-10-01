@@ -77,3 +77,9 @@
   background-color: #242a3a !important;
   color: #38bdf8 !important;
 }
+
+/* High-contrast dark GIS theme for OpenStreetMap without requiring any API keys */
+.dark-tiles .leaflet-tile-pane {
+  filter: brightness(0.65) invert(1) contrast(3) hue-rotate(200deg) saturate(0.35) !important;
+}
+

@@ -69,6 +69,8 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
   const [showHospitals, setShowHospitals] = useState(true);
   const [showShelters, setShowShelters] = useState(true);
   const [showHotspots, setShowHotspots] = useState(true);
+  const [baseMapStyle, setBaseMapStyle] = useState<'dark' | 'osm' | 'satellite'>('dark');
+  const [customApiKey, setCustomApiKey] = useState<string>(() => localStorage.getItem('MAP_API_KEY') || '');
   const [coord, setCoord] = useState({ lat: currentAoi.center[0], lng: currentAoi.center[1] });
   const mapRef = useRef<L.Map | null>(null);
 
@@ -90,18 +92,29 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
         center={currentAoi.center}
         zoom={currentAoi.zoom}
         style={{ width: '100%', height: '100%' }}
+        className={baseMapStyle === 'dark' ? 'dark-tiles' : ''}
         zoomControl={false}
         ref={mapRef}
       >
         <MapController center={currentAoi.center} zoom={currentAoi.zoom} />
         <CoordTracker onChange={(lat, lng) => setCoord({ lat, lng })} />
 
-        {/* Dark CartoDB basemap */}
-        <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          maxZoom={19}
-        />
+        {/* 100% Free Public Basemaps — No API Key Required */}
+        {baseMapStyle === 'satellite' ? (
+          <TileLayer
+            key="satellite-layer"
+            attribution='&copy; Esri World Imagery'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={19}
+          />
+        ) : (
+          <TileLayer
+            key="osm-layer"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
+          />
+        )}
 
         {/* Hotspot polygons */}
         {showHotspots && analysis.hotspots.map((h) =>
@@ -225,14 +238,34 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
               </div>
               <input type="range" min="10" max="100" value={rasterOpacity} onChange={e => setRasterOpacity(+e.target.value)} className="w-full accent-[#38bdf8] cursor-pointer" />
               <div className="flex flex-col gap-1 text-[#dde2f8]">
+                <span className="text-[#38bdf8] font-bold uppercase text-[10px]">Hazard Overlay</span>
                 <label className="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="lm" checked={layerMode === 'composite'} onChange={() => setLayerMode('composite')} className="accent-[#38bdf8]" /> Multi-Hazard Composite</label>
                 <label className="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="lm" checked={layerMode === 'flood'} onChange={() => setLayerMode('flood')} className="accent-[#38bdf8]" /> SAR Flood Extent</label>
+              </div>
+              <div className="flex flex-col gap-1 text-[#dde2f8] border-t border-[#263244] pt-1">
+                <span className="text-[#38bdf8] font-bold uppercase text-[10px]">Basemap Style</span>
+                <label className="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="bm" checked={baseMapStyle === 'dark'} onChange={() => setBaseMapStyle('dark')} className="accent-[#38bdf8]" /> 🌙 Tactical Dark (OSM)</label>
+                <label className="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="bm" checked={baseMapStyle === 'satellite'} onChange={() => setBaseMapStyle('satellite')} className="accent-[#38bdf8]" /> 🛰️ Satellite Aerial (Esri)</label>
+                <label className="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="bm" checked={baseMapStyle === 'osm'} onChange={() => setBaseMapStyle('osm')} className="accent-[#38bdf8]" /> 🗺️ Street Map (OSM)</label>
               </div>
               <div className="flex flex-col gap-1 text-[#dde2f8] border-t border-[#263244] pt-1">
                 <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={showRoads} onChange={e => setShowRoads(e.target.checked)} className="accent-[#38bdf8]" /> Road Heatmap</label>
                 <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={showHospitals} onChange={e => setShowHospitals(e.target.checked)} className="accent-[#38bdf8]" /> Hospitals ({analysis.facilities.filter(f => f.type === 'hospital').length})</label>
                 <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={showShelters} onChange={e => setShowShelters(e.target.checked)} className="accent-[#38bdf8]" /> Shelters ({analysis.facilities.filter(f => f.type === 'shelter').length})</label>
                 <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={showHotspots} onChange={e => setShowHotspots(e.target.checked)} className="accent-[#38bdf8]" /> Hazard Polygons</label>
+              </div>
+              <div className="flex flex-col gap-1 border-t border-[#263244] pt-1.5">
+                <span className="text-[#87929a] text-[9px] uppercase font-mono">Custom Map API Key (Optional)</span>
+                <input
+                  type="password"
+                  placeholder="Paste Mapbox/Stadia key..."
+                  value={customApiKey}
+                  onChange={e => {
+                    setCustomApiKey(e.target.value);
+                    localStorage.setItem('MAP_API_KEY', e.target.value);
+                  }}
+                  className="bg-[#151b2b] text-[10px] text-[#dde2f8] px-2 py-1 rounded border border-[#263244] focus:outline-none focus:border-[#38bdf8]"
+                />
               </div>
             </div>
           )}
